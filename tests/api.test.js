@@ -8,6 +8,13 @@ const Blog = require('../models/blogs')
 const api = supertest(app)
 const defaultBlogs = require('./blogs')
 
+const getBlogs = async() => {
+  return await api
+    .get('/api/blogs')
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+}
+
 after(async () => {
   await mongoose.connection.close()
   console.log('Conection to DB closed!');
@@ -22,14 +29,16 @@ beforeEach(async() => {
 
 describe('Api requests', () => {
   test('api blogs returns expected number of blogs as JSON' ,async () => {
-    console.log('Enter test');
-
-    const retrieveBlogs = await api
-      .get('/api/blogs')
-      .expect(200)
-      .expect('Content-Type', /application\/json/)
+    const retrieveBlogs = await getBlogs()
 
     assert.strictEqual(retrieveBlogs.body.length, defaultBlogs.length)
+  })
 
+  test('blog contains id attribute' ,async () => {
+    const retrieveBlogs = await getBlogs()
+
+    retrieveBlogs.body.forEach( entry => {
+      assert.ok(Object.prototype.hasOwnProperty.call(entry, 'id'))
+    })
   })
 })
