@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../App')
 const Blog = require('../models/blogs')
+const logger = require('../utils/logger')
 
 const api = supertest(app)
 const defaultBlogs = require('./blogs')
@@ -32,7 +33,7 @@ const create400Blog = async(blog) => {
 
 after(async () => {
   await mongoose.connection.close()
-  console.log('Conection to DB closed!');
+  logger.info('Conection to DB closed!');
 })
 
 beforeEach(async() => {
@@ -102,7 +103,7 @@ describe('Create blog tests', () => {
   })
 })
 
-describe('Remove a blog', () => {
+describe('Remove blogs', () => {
   test('Only one deletion', async() => {
     const actualBlogsOnDB = await getBlogs()
 
@@ -119,5 +120,22 @@ describe('Remove a blog', () => {
 
     assert.strictEqual(actualBlogsOnDB.body.length -1, afterBlogsOnDB.body.length)
     assert.ok(!blogsIds.includes(actualBlogsOnDB.body[0].id))
+  })
+})
+
+describe('Update blogs', () => {
+  test('Update one entry' ,async() => {
+    const actualBlogsOnDB = await getBlogs()
+    let blogUpdate = actualBlogsOnDB.body[0]
+    blogUpdate.likes = 34
+    blogUpdate.title = 'TEST'
+
+    const result = await api
+      .put(`/api/blogs/${actualBlogsOnDB.body[0].id}`)
+      .send(blogUpdate)
+      .expect(200)
+
+    assert.strictEqual(blogUpdate.likes, result.body.likes)
+    assert.strictEqual(blogUpdate.title, result.body.title)
   })
 })
