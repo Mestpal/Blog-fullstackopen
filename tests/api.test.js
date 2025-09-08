@@ -129,13 +129,15 @@ describe('Update blogs', () => {
     let blogUpdate = actualBlogsOnDB.body[0]
     blogUpdate.likes = 34
     blogUpdate.title = 'TEST'
+    blogUpdate.url="https://test.com/"
 
     const result = await api
-      .put(`/api/blogs/${actualBlogsOnDB.body[0].id}`)
+      .put(`/api/blogs/${blogUpdate.id}`)
       .send(blogUpdate)
       .expect(200)
 
     assert.strictEqual(blogUpdate.likes, result.body.likes)
     assert.strictEqual(blogUpdate.title, result.body.title)
+    assert.strictEqual(blogUpdate.url, result.body.url)
   })
 })
