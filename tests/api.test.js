@@ -15,6 +15,14 @@ const getBlogs = async() => {
     .expect('Content-Type', /application\/json/)
 }
 
+const createBlog = async(blog) => {
+  return await api
+    .post ('/api/blogs')
+    .send(blog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+}
+
 after(async () => {
   await mongoose.connection.close()
   console.log('Conection to DB closed!');
@@ -40,5 +48,19 @@ describe('Api requests', () => {
     retrieveBlogs.body.forEach( entry => {
       assert.ok(Object.prototype.hasOwnProperty.call(entry, 'id'))
     })
+  })
+
+  test('Create a new blog entry' ,async () => {
+    const oldBlogs = await getBlogs()
+    const createdBlog = await createBlog(defaultBlogs[0])
+    const newBlogs = await getBlogs()
+    let blogsIds = [];
+
+    newBlogs.body.forEach( entry => {
+      blogsIds.push(entry.id)
+    })
+
+    assert.strictEqual(oldBlogs.body.length + 1, newBlogs.body.length)
+    assert.ok(blogsIds.includes(createdBlog.body.id))
   })
 })
