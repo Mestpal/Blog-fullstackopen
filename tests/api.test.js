@@ -42,7 +42,7 @@ beforeEach(async() => {
   await Promise.all(promises)
 })
 
-describe('Api requests', () => {
+describe('Format and get data', () => {
   test('api blogs returns expected number of blogs as JSON', async () => {
     const retrieveBlogs = await getBlogs()
 
@@ -56,7 +56,9 @@ describe('Api requests', () => {
       assert.ok(Object.prototype.hasOwnProperty.call(entry, 'id'))
     })
   })
+})
 
+describe('Create blog tests', () => {
   test('Create a new blog entry', async () => {
     const oldBlogs = await getBlogs()
     const createdBlog = await createBlog(defaultBlogs[0])
@@ -97,5 +99,25 @@ describe('Api requests', () => {
     delete blogToSave.title
     delete blogToSave.url
     await create400Blog(blogToSave)
+  })
+})
+
+describe('Remove a blog', () => {
+  test('Only one deletion', async() => {
+    const actualBlogsOnDB = await getBlogs()
+
+    await api
+      .delete(`/api/blogs/${actualBlogsOnDB.body[0].id}`)
+      .expect(204)
+
+    const afterBlogsOnDB = await getBlogs()
+    let blogsIds = [];
+
+    afterBlogsOnDB.body.forEach( entry => {
+      blogsIds.push(entry.id)
+    })
+
+    assert.strictEqual(actualBlogsOnDB.body.length -1, afterBlogsOnDB.body.length)
+    assert.ok(!blogsIds.includes(actualBlogsOnDB.body[0].id))
   })
 })
