@@ -10,6 +10,10 @@ blogRouter.get('/', (request, response) => {
 })
 
 blogRouter.post('/', (request, response) => {
+  if (!request.body?.likes) {
+    request.body.likes = 0
+  }
+
   const blog = new Blog(request.body)
 
   blog

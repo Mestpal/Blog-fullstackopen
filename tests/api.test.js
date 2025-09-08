@@ -63,4 +63,13 @@ describe('Api requests', () => {
     assert.strictEqual(oldBlogs.body.length + 1, newBlogs.body.length)
     assert.ok(blogsIds.includes(createdBlog.body.id))
   })
+
+  test('Likes are 0 if the attribute likes do not exits' ,async () => {
+    const blogToSave = defaultBlogs[0]
+    delete blogToSave.likes
+    const createdBlog = await createBlog(blogToSave)
+
+    assert.ok(!Object.prototype.hasOwnProperty.call(blogToSave, 'likes'))
+    assert.strictEqual(createdBlog.body.likes, 0)
+  })
 })
