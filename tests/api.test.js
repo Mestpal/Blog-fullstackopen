@@ -23,6 +23,13 @@ const createBlog = async(blog) => {
     .expect('Content-Type', /application\/json/)
 }
 
+const create400Blog = async(blog) => {
+  return await api
+    .post ('/api/blogs')
+    .send(blog)
+    .expect(400)
+}
+
 after(async () => {
   await mongoose.connection.close()
   console.log('Conection to DB closed!');
@@ -36,13 +43,13 @@ beforeEach(async() => {
 })
 
 describe('Api requests', () => {
-  test('api blogs returns expected number of blogs as JSON' ,async () => {
+  test('api blogs returns expected number of blogs as JSON', async () => {
     const retrieveBlogs = await getBlogs()
 
     assert.strictEqual(retrieveBlogs.body.length, defaultBlogs.length)
   })
 
-  test('blog contains id attribute' ,async () => {
+  test('blog contains id attribute', async () => {
     const retrieveBlogs = await getBlogs()
 
     retrieveBlogs.body.forEach( entry => {
@@ -50,7 +57,7 @@ describe('Api requests', () => {
     })
   })
 
-  test('Create a new blog entry' ,async () => {
+  test('Create a new blog entry', async () => {
     const oldBlogs = await getBlogs()
     const createdBlog = await createBlog(defaultBlogs[0])
     const newBlogs = await getBlogs()
@@ -64,12 +71,31 @@ describe('Api requests', () => {
     assert.ok(blogsIds.includes(createdBlog.body.id))
   })
 
-  test('Likes are 0 if the attribute likes do not exits' ,async () => {
+  test('Likes are 0 if the attribute likes do not exits', async () => {
     const blogToSave = defaultBlogs[0]
     delete blogToSave.likes
     const createdBlog = await createBlog(blogToSave)
 
     assert.ok(!Object.prototype.hasOwnProperty.call(blogToSave, 'likes'))
     assert.strictEqual(createdBlog.body.likes, 0)
+  })
+
+  test('Returns 400 if title attr is missing', async () => {
+    const blogToSave = defaultBlogs[0]
+    delete blogToSave.title
+    await create400Blog(blogToSave)
+  })
+
+  test('Returns 400 if url attrs is missing', async () => {
+    const blogToSave = defaultBlogs[1]
+    delete blogToSave.url
+    await create400Blog(blogToSave)
+  })
+
+  test('Returns 400 if title and url attrs are missing', async () => {
+    const blogToSave = defaultBlogs[2]
+    delete blogToSave.title
+    delete blogToSave.url
+    await create400Blog(blogToSave)
   })
 })
