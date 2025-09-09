@@ -10,6 +10,13 @@ const User = require('../models/user')
 
 const { result } = require('lodash')
 
+const newUser = {
+  "name": "Test",
+  "username": "test",
+  "password": "test"
+}
+
+
 after(async () => {
   await mongoose.connection.close()
   logger.info('Conection to DB closed!');
@@ -42,8 +49,13 @@ describe('Format and get data', () => {
 
 describe('Create blog tests', () => {
   test('Create a new blog entry', async () => {
+    const user = await Utils.createUser(newUser)
+    let newBlog = defaultBlogs[0]
+    newBlog.user = user.body.id
+
+
     const oldBlogs = await Utils.getBlogs()
-    const createdBlog = await Utils.createBlog(defaultBlogs[0])
+    const createdBlog = await Utils.createBlog(newBlog)
     const newBlogs = await Utils.getBlogs()
     let blogsIds = [];
 
@@ -56,7 +68,10 @@ describe('Create blog tests', () => {
   })
 
   test('Likes are 0 if the attribute likes do not exits', async () => {
-    const blogToSave = defaultBlogs[0]
+    const user = await Utils.createUser(newUser)
+
+    let blogToSave = defaultBlogs[0]
+    blogToSave.user = user.body.id
     delete blogToSave.likes
     const createdBlog = await Utils.createBlog(blogToSave)
 
@@ -119,12 +134,6 @@ describe('Update blogs', () => {
 })
 
 describe('Users API', () => {
-  const newUser = {
-    "name": "Test",
-    "username": "test",
-    "password": "test"
-  }
-
   const wrongUser = {
     "name": "Test",
     "username": "te",
