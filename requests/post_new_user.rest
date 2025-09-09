@@ -3,6 +3,6 @@ Content-Type: application/json
 
 {
   "name": "MEPPPP",
-  "username": "RootPPP",
-  "password": "www.test.test"
+  "username": "Ron",
+  "password": "www"
 }
