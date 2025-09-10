@@ -1,21 +1,19 @@
 const { test, describe, beforeEach, after } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
+const jwt = require('jsonwebtoken')
+
 const logger = require('../utils/logger')
 const Utils = require('./utils')
 const defaultBlogs = require('./blogs')
+const defaultUsers = require('./users')
 
 const Blog = require('../models/blogs')
 const User = require('../models/user')
 
 const { result } = require('lodash')
 
-const newUser = {
-  "name": "Test",
-  "username": "test",
-  "password": "test"
-}
-
+let token = undefined
 
 after(async () => {
   await mongoose.connection.close()
@@ -23,12 +21,15 @@ after(async () => {
 })
 
 beforeEach(async() => {
+  await User.deleteMany({})
+  const user = await Utils.createUser(defaultUsers.user)
+
   await Blog.deleteMany({})
-  const blogsToSave = defaultBlogs.map(conf => new Blog(conf))
+  const blogsToSave = defaultBlogs.map(conf =>
+    new Blog({ ...conf, user: user.body.id })
+  )
   const promises = blogsToSave.map(blog => blog.save())
   await Promise.all(promises)
-
-  await User.deleteMany({})
 })
 
 describe('Format and get data', () => {
@@ -49,111 +50,156 @@ describe('Format and get data', () => {
 
 describe('Create blog tests', () => {
   test('Create a new blog entry', async () => {
-    const user = await Utils.createUser(newUser)
-    let newBlog = defaultBlogs[0]
-    newBlog.user = user.body.id
+    let found = undefined
 
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+    const decodedToken = jwt.verify(token, process.env.SECRET)
 
-    const oldBlogs = await Utils.getBlogs()
-    const createdBlog = await Utils.createBlog(newBlog)
-    const newBlogs = await Utils.getBlogs()
-    let blogsIds = [];
+    if (decodedToken.id) {
+      found = await User.findById(decodedToken.id)
 
-    newBlogs.body.forEach( entry => {
-      blogsIds.push(entry.id)
-    })
+      if (found?._id && decodedToken.id === found._id.toString()) {
+        let newBlog = defaultBlogs[0]
+        newBlog.user = decodedToken.id
 
-    assert.strictEqual(oldBlogs.body.length + 1, newBlogs.body.length)
-    assert.ok(blogsIds.includes(createdBlog.body.id))
+        const oldBlogs = await Utils.getBlogs()
+        const createdBlog = await Utils.createBlog(newBlog, token)
+        const newBlogs = await Utils.getBlogs()
+        let blogsIds = [];
+
+        newBlogs.body.forEach( entry => {
+          blogsIds.push(entry.id)
+        })
+
+        assert.strictEqual(oldBlogs.body.length + 1, newBlogs.body.length)
+        assert.ok(blogsIds.includes(createdBlog.body.id))
+      }
+    }
+
+    assert.ok(Object.prototype.hasOwnProperty.call(decodedToken, 'id'))
+    assert.strictEqual(decodedToken.id, found._id.toString())
+  })
+
+  test('Error 401 if no token is given in a new blog creation', async () => {
+    await Utils.createBlogNoToken()
   })
 
   test('Likes are 0 if the attribute likes do not exits', async () => {
-    const user = await Utils.createUser(newUser)
+    let found = undefined
+    let createdBlog = undefined
 
-    let blogToSave = defaultBlogs[0]
-    blogToSave.user = user.body.id
-    delete blogToSave.likes
-    const createdBlog = await Utils.createBlog(blogToSave)
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+    const decodedToken = jwt.verify(token, process.env.SECRET)
 
-    assert.ok(!result.prototype.hasOwnProperty.call(blogToSave, 'likes'))
+    if (decodedToken.id) {
+      found = await User.findById(decodedToken.id)
+
+      if (found?._id && decodedToken.id, found._id.toString()) {
+        let blogToSave = defaultBlogs[0]
+        blogToSave.user = decodedToken.id
+        delete blogToSave.likes
+        createdBlog = await Utils.createBlog(blogToSave, token)
+
+        assert.ok(!result.prototype.hasOwnProperty.call(blogToSave, 'likes'))
+      }
+    }
+
     assert.strictEqual(createdBlog.body.likes, 0)
+    assert.ok(Object.prototype.hasOwnProperty.call(decodedToken, 'id'))
+    assert.strictEqual(decodedToken.id, found._id.toString())
   })
 
   test('Returns 400 if title attr is missing', async () => {
-    const blogToSave = defaultBlogs[0]
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+
+    let blogToSave = defaultBlogs[0]
     delete blogToSave.title
-    await Utils.create400Blog(blogToSave)
+    await Utils.create400Blog(blogToSave, token)
   })
 
   test('Returns 400 if url attrs is missing', async () => {
-    const blogToSave = defaultBlogs[1]
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+
+    let blogToSave = defaultBlogs[1]
     delete blogToSave.url
-    await Utils.create400Blog(blogToSave)
+    await Utils.create400Blog(blogToSave, token)
   })
 
   test('Returns 400 if title and url attrs are missing', async () => {
-    const blogToSave = defaultBlogs[2]
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+
+    let blogToSave = defaultBlogs[2]
     delete blogToSave.title
     delete blogToSave.url
-    await Utils.create400Blog(blogToSave)
+    await Utils.create400Blog(blogToSave, token)
   })
 })
 
 describe('Remove blogs', () => {
   test('Only one deletion', async() => {
-    const actualBlogsOnDB = await Utils.getBlogs()
+    let found = undefined
 
-    await Utils.deleteBlog(actualBlogsOnDB.body[0].id)
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+    const decodedToken = jwt.verify(token, process.env.SECRET)
 
-    const afterBlogsOnDB = await Utils.getBlogs()
-    let blogsIds = [];
+    if (decodedToken.id) {
+      found = await User.findById(decodedToken.id)
 
-    afterBlogsOnDB.body.forEach( entry => {
-      blogsIds.push(entry.id)
-    })
+      if (found?._id && decodedToken.id === found._id.toString()) {
+        const actualBlogsOnDB = await Utils.getBlogs()
 
-    assert.strictEqual(actualBlogsOnDB.body.length -1, afterBlogsOnDB.body.length)
-    assert.ok(!blogsIds.includes(actualBlogsOnDB.body[0].id))
+        await Utils.deleteBlog(actualBlogsOnDB.body[0].id, token)
+
+        const afterBlogsOnDB = await Utils.getBlogs()
+        let blogsIds = [];
+
+        afterBlogsOnDB.body.forEach( entry => {
+          blogsIds.push(entry.id)
+        })
+
+        assert.strictEqual(actualBlogsOnDB.body.length -1, afterBlogsOnDB.body.length)
+        assert.ok(!blogsIds.includes(actualBlogsOnDB.body[0].id))
+      }
+    }
+
+    assert.ok(Object.prototype.hasOwnProperty.call(decodedToken, 'id'))
+    assert.strictEqual(decodedToken.id, found._id.toString())
   })
 })
 
 describe('Update blogs', () => {
   test('Update one entry' ,async() => {
+    const login = await Utils.login(defaultUsers.user)
+    token = login.body.token
+    const decodedToken = jwt.verify(token, process.env.SECRET)
+
     const actualBlogsOnDB = await Utils.getBlogs()
     let blogUpdate = actualBlogsOnDB.body[0]
     blogUpdate.likes = 34
     blogUpdate.title = 'TEST'
-    blogUpdate.url="https://test.com/"
+    blogUpdate.url= "https://test.com/"
+    blogUpdate.user= decodedToken.id
 
-    const result = await Utils.updateBlog(blogUpdate)
+    const result = await Utils.updateBlog(blogUpdate, token)
 
+    assert.ok(Object.prototype.hasOwnProperty.call(decodedToken, 'id'))
     assert.strictEqual(blogUpdate.likes, result.body.likes)
     assert.strictEqual(blogUpdate.title, result.body.title)
     assert.strictEqual(blogUpdate.url, result.body.url)
+    assert.strictEqual(blogUpdate.user, result.body.user)
   })
 })
 
 describe('Users API', () => {
-  const wrongUser = {
-    "name": "Test",
-    "username": "te",
-    "password": "test"
-  }
-
-  const wrongUserNoUsername= {
-    "name": "Test",
-    "password": "test"
-  }
-
-  const wrongUserPassword = {
-    "name": "Test",
-    "username": "test",
-    "password": "te"
-  }
-
   test('Create a new User', async() => {
     const current = await Utils.getUsers()
-    const result = await Utils.createUser(newUser)
+    const result = await Utils.createUser(defaultUsers.newUser)
     const after = await Utils.getUsers()
     const userIds = after.body.map(u => u.id)
 
@@ -163,8 +209,8 @@ describe('Users API', () => {
 
   test('Avoid to create a new User with an duplicated username', async() => {
     const current = await Utils.getUsers()
-    const savedUser = await Utils.createUser(newUser)
-    const result = await Utils.createWrongUser(newUser)
+    const savedUser = await Utils.createUser(defaultUsers.newUser)
+    const result = await Utils.createWrongUser(defaultUsers.newUser)
     const after = await Utils.getUsers()
     const userIds = after.body.map(u => u.id)
 
@@ -175,7 +221,7 @@ describe('Users API', () => {
 
   test('Avoid create an user without username', async() => {
     const current = await Utils.getUsers()
-    const result = await Utils.createWrongUser(wrongUserNoUsername)
+    const result = await Utils.createWrongUser(defaultUsers.wrongUserNoUsername)
     const after = await Utils.getUsers()
 
     assert.strictEqual(current.body.length, after.body.length)
@@ -184,7 +230,7 @@ describe('Users API', () => {
 
   test('Avoid create an user with invalid username', async() => {
     const current = await Utils.getUsers()
-    const result = await Utils.createWrongUser(wrongUser)
+    const result = await Utils.createWrongUser(defaultUsers.wrongUser)
     const after = await Utils.getUsers()
 
     assert.strictEqual(current.body.length, after.body.length)
@@ -193,7 +239,7 @@ describe('Users API', () => {
 
   test('Avoid create an user with invalid password', async() => {
     const current = await Utils.getUsers()
-    const result = await Utils.createWrongUser(wrongUserPassword)
+    const result = await Utils.createWrongUser(defaultUsers.wrongUserPassword)
     const after = await Utils.getUsers()
 
     assert.strictEqual(current.body.length, after.body.length)
