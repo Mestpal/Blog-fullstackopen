@@ -1,11 +1,11 @@
 POST http://localhost:3003/api/blogs
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlRlc3QiLCJpZCI6IjY4YzE1MmFkODJiYTU3ZWYyNTNmNzY4NSIsImlhdCI6MTc1NzUwMTcyNH0.29I3ytdK5JZWaaHeXbauC3SA_KLIhMEh00AgHOEfJLQ
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlRlc3QiLCJpZCI6IjY4YzE1MmFkODJiYTU3ZWYyNTNmNzY4NSIsImlhdCI6MTc1NzUwMjY1MCwiZXhwIjoxNzU3NTA2MjUwfQ.6PpKGlLmtdprh5tF0JN3OqAZkvLwoocht-F--y6sTMQ
 
 {
-  "title": "TEST 2222",
-  "author": "MEP",
+  "title": "TEST 20",
+  "author": "PEepe",
   "likes": 10,
   "url": "www.test.test",
-  "user": "68c0aab7a840f902d573e0b3"
+  "user": "68c152ad82ba57ef253f7685"
 }
