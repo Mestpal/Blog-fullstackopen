@@ -1,8 +1,9 @@
 POST http://localhost:3003/api/blogs
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlRlc3QiLCJpZCI6IjY4YzE1MmFkODJiYTU3ZWYyNTNmNzY4NSIsImlhdCI6MTc1NzUwMTcyNH0.29I3ytdK5JZWaaHeXbauC3SA_KLIhMEh00AgHOEfJLQ
 
 {
-  "title": "TEST",
+  "title": "TEST 2222",
   "author": "MEP",
   "likes": 10,
   "url": "www.test.test",
